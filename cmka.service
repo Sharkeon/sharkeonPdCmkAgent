@@ -1,0 +1,13 @@
+[Unit]
+Description=cmka Daemon
+After=network.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=60
+User=root
+ExecStart=/cmka/cmka.daemon
+
+[Install]
+WantedBy=multi-user.target
