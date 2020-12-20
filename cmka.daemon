@@ -1,0 +1,57 @@
+#!/bin/bash
+
+cmkAgentSetup(){
+	cd /home
+	apt update
+	apt install -y git
+    if ! [ -f /cmka/sharkeonPdCmkAgent ]; then
+    	apt install -y xinetd
+    	git clone https://github.com/Sharkeon/sharkeonPdCmkAgent.git
+    	cd /cmka/sharkeonPdCmkAgent
+    	git status
+    	cd /cmka
+    else
+    	cd /cmka/sharkeonPdCmkAgent
+    	git status
+    	cd /cmka
+    fi
+    if ! [ -f /etc/xinetd.d/checkmk ]; then
+        cp /cmka/sharkeonPdCmkAgent/checkmk /etc/xinetd.d/checkmk
+        chmod 755 /etc/xinetd.d/checkmk
+        service xinetd restart
+    fi
+    if ! [ -f /usr/local/bin/check_mk_agent ]; then
+    	cp /cmka/sharkeonPdCmkAgent/check_mk_agent /usr/local/bin/check_mk_agent
+    	chmod 755 /usr/local/bin/check_mk_agent
+    fi
+}
+cmkAgentUpdate(){
+	cd /cmka/sharkeonPdCmkAgent
+	git pull
+	if [ /cmka/sharkeonPdCmkAgent/check_mk_agent -nt /usr/local/bin/check_mk_agent ]; then
+		cp /cmka/sharkeonPdCmkAgent/check_mk_agent /usr/local/bin/check_mk_agent
+    	chmod 755 /usr/local/bin/check_mk_agent
+    	service xinetd restart
+    fi
+    if [ /cmka/sharkeonPdCmkAgent/checkmk -nt /etc/xinetd.d/checkmk ]; then
+    	cp /cmka/sharkeonPdCmkAgent/checkmk /etc/xinetd.d/checkmk
+        chmod 755 /etc/xinetd.d/checkmk
+        service xinetd restart
+    fi
+}
+cmkAgentChecker(){
+	pidXinetd=$(service xinetd status)
+	if [[ $pidXinetd == *"is not running"* ]] || [[ $pidXinetd == *"fail"* ]]; then
+		service xinetd start
+	fi
+}
+
+echo "starting cmk agent"
+cmkAgentSetup
+while true
+do
+  cmkAgentUpdate
+  cmkAgentChecker
+  sleep 10m
+done
+echo "stopping cmk agent"
